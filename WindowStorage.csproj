@@ -1,0 +1,89 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<AssemblyName>windowdisplaylib</AssemblyName>
+		<Platforms>AnyCPU</Platforms>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<Prefer32Bit>false</Prefer32Bit>
+
+		<!-- KEEP THE LINE NUMBERS, DROP THE PERSONAL PATH.
+
+		     The shipped .pdb is what puts file names and line numbers into a crash
+		     report, and that is worth having - a server owner's log named
+		     BEWindowDisplay.cs line 1702 on 2026-08-01 and that was the whole
+		     diagnosis. But without this the path is absolute, so every stranger's
+		     log also carried "E:\Game Mods\Improved Vintage Story\Window Display\...".
+
+		     PathMap rewrites the source root recorded in the symbols, so traces now
+		     read "src\psurface\BEWindowDisplay.cs:line 1702" with nothing about this
+		     machine in front of it. Nothing else changes.
+
+		     Remove the .pdb from the zip instead if you would rather have neither,
+		     but then crash reports lose their line numbers. -->
+		<PathMap>$(MSBuildProjectDirectory)=.</PathMap>
+	</PropertyGroup>
+	<!-- Pre-psurface classes, kept on disk for reference but not built:
+	     Window Storage Lib registers these same class names. -->
+	<ItemGroup>
+		<Compile Remove="src\legacy\**" />
+		<Compile Remove="tools\**" />
+		<None Include="tools\**" />
+		<Compile Remove="backup\**" />
+		<None Include="backup\**" />
+		<None Include="src\legacy\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Remove="C:\Users\rasmi\.nuget\packages\craluminummods.vintagestory.attributerenderinglibrary\3.1.0\contentFiles\any\net10.0\modinfo.json" />
+	</ItemGroup>
+
+	<!-- Ship the lib's own assets (lang keys for the pane/swap interaction help) -->
+	<ItemGroup>
+		<Content Include="assets\**\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="0Harmony">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\Lib\0Harmony.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\Lib\Newtonsoft.Json.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="protobuf-net">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\Lib\protobuf-net.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="SkiaSharp">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\Lib\SkiaSharp.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Vintagestory">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\Vintagestory.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="VintagestoryAPI">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\VintagestoryAPI.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="VintagestoryLib">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\VintagestoryLib.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="VSEssentials">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\Mods\VSEssentials.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="VSSurvivalMod">
+			<HintPath>..\..\..\..\..\Games\Vintage Story\Vintage Story Launcher\Vintage Story Versions\1.22.3\Mods\VSSurvivalMod.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CraluminumMods.VintageStory.AttributeRenderingLibrary" Version="3.1.0" PrivateAssets="all" />
+	</ItemGroup>
+</Project>
