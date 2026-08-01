@@ -1,0 +1,206 @@
+// ============================================================================
+//  WINDOW DISPLAY LIB - annotated example blocktype
+//
+//  A complete window block using every attribute the library reads. Nothing
+//  here is required except the four marked REQUIRED - delete anything you do
+//  not need and the block still works.
+//
+//  Vintage Story's JSON parser allows these // comments, so this file loads as
+//  it stands. Strip them if you prefer.
+//
+//  Coordinates: box values are 0..1 across the block. Shape element positions
+//  are in VOXELS, 0..16. Those are different scales - do not mix them up.
+// ============================================================================
+{
+	"code": "myfancywindow",
+
+	// REQUIRED 1 of 4. BlockGeneric is not enough on its own - only this class
+	// resolves placement angle, drops, the swap and the interaction entry.
+	"class": "BlockWindowDisplay",
+
+	// REQUIRED 2 of 4. Holds the inventory, the pane state and the mesh angle.
+	"entityClass": "BEWindowDisplay",
+
+	// REQUIRED 3 of 4. Adds the surfaces, the selection boxes and the placement
+	// preview. Without it the block is just a block.
+	"behaviors": [ { "name": "WindowSurfaces" } ],
+
+	// REQUIRED 4 of 4 (in the SHAPE, not here). Your shape file must contain at
+	// least one element named:
+	//
+	//     psurface<index>-w<width>-h<height>-d<depth>-<category>
+	//     e.g.  psurface0-w16-h16-d7-windowdisplay
+	//
+	//   index     0, 1, 2... one per surface on the block
+	//   w / h / d the usable area in voxels. h is HEADROOM, not geometry -
+	//             it caps how tall an item may be and how high a stack grows
+	//   category  use "windowdisplay" to get the full item fallback chain
+	//
+	// The element's own from/to gives the grid position. Its ROTATION is
+	// ignored - only from/to are read. Put the marker in ignoreElements so it
+	// never renders.
+	"shape": { "base": "block/myfancywindow" },
+	"ignoreElements": [ "psurface0-w16-h16-d7-windowdisplay" ],
+
+	// Open and closed are separate blocks. The lib swaps between them for you;
+	// you just have to declare the variants and name your shapes per state.
+	"variantgroups": [
+		{ "code": "state", "states": [ "closed", "open" ] }
+	],
+
+	// Light passes through regardless of the pane, and the block never blocks
+	// light. Leave both at 0/false unless you want a genuinely opaque block -
+	// changing them per state does NOT make opening a window brighten a room,
+	// because light propagation reads lightAbsorption only.
+	"lightAbsorption": 0,
+	"sideopaque": { "all": false },
+
+	// This is what makes a closed window seal a room and an open one not.
+	// sideSolid does NOT affect light - it drives room sealing and what blocks
+	// can attach to this one.
+	"sideSolidByType": {
+		"*-closed": { "all": true },
+		"*-open":   { "north": false, "south": false, "east": false, "west": false, "up": true, "down": true }
+	},
+
+	"attributes": {
+
+		// ------------------------------------------------------------------
+		//  OPENING AND ANIMATION
+		// ------------------------------------------------------------------
+
+		// false makes a style that never opens. Its frame boxes still exist,
+		// so you can still swap it and still place items on it.
+		"canOpen": true,
+
+		// Top-level shape elements the animator drives. EVERYTHING ELSE stays
+		// batched into the chunk mesh, which keeps per-vertex light and ambient
+		// occlusion and costs nothing per frame.
+		//
+		// Only name elements that actually have keyframes. Naming one without
+		// any gives you flat lighting and no movement - the worst of both.
+		"animatedElements": [ "Pane Left", "Pane Right" ],
+
+		// One entry per independently opening pane. The boxes are what you
+		// right click to open that pane.
+		"frameBoxGroups": [
+			{
+				// Animation names from your shape file. Anything you like.
+				"animOpen": "openleft",
+				"animClose": "closeleft",
+
+				// The clickable box in each state. The pane moves, so the box
+				// has to move with it or you end up clicking thin air.
+				"closedFrameBox": { "x1": 0.0, "y1": 0.0, "z1": 0.40, "x2": 0.5, "y2": 1.0, "z2": 0.59 },
+				"openFrameBox":   { "x1": 0.0, "y1": 0.0, "z1": 0.0,  "x2": 0.06, "y2": 1.0, "z2": 0.46 },
+
+				// Parts of the frame that never move. Optional, and an array -
+				// add as many as the casing needs.
+				"staticFrameBoxes": [
+					{ "x1": 0.0, "y1": 0.0, "z1": 0.40, "x2": 1.0, "y2": 0.06, "z2": 0.59 }
+				],
+
+				// true  = this pane drives the open/closed variant, so opening
+				//         it unseals the room and changes the info readout
+				// false = the pane animates and toggles but changes no state.
+				//         For interior doors, display flaps and hatches.
+				"isWindow": true
+			}
+		],
+
+		// Collision is INDEPENDENT of the frame boxes - GetCollisionBoxes never
+		// looks at frameBoxGroups. A block can declare no frame box at all and
+		// still collide, or the reverse. Same shape as above.
+		"collisionBoxGroups": [
+			{
+				"closedCollisionBox": { "x1": 0.0, "y1": 0.0, "z1": 0.40, "x2": 1.0, "y2": 1.0, "z2": 0.59 },
+				"openCollisionBox":   { "x1": 0.0, "y1": 0.0, "z1": 0.0,  "x2": 1.0, "y2": 1.0, "z2": 0.06 },
+				"staticCollisionBoxes": [
+					{ "x1": 0.0, "y1": 0.0, "z1": 0.40, "x2": 1.0, "y2": 0.06, "z2": 0.59 }
+				]
+			}
+		],
+
+		// ------------------------------------------------------------------
+		//  SURFACES
+		// ------------------------------------------------------------------
+
+		// Item facing is worked out from where the surface sits on the block -
+		// larger of its X/Z offset from centre wins, sign gives direction, and
+		// items face +Z by default. So +Z=0, -Z=180, +X=90, -X=270.
+		//
+		// Only declare this for a surface whose side cannot be inferred: one
+		// centred on the block, or straddling the middle. Keyed by psurface
+		// index; omitted indices still derive normally.
+		"surfaceFacingDeg": { "1": 90 },
+
+		// Which surfaces stay usable when another window is stacked on top.
+		// ABSENT MEANS ALL HIDDEN - this is opt-in.
+		"showSurfacesWhenStacked": [ 0 ],
+
+		// Grid density per surface. Defaults to 32, which means the grid is
+		// simply width x depth in voxels. Lower it to make a coarser grid with
+		// fewer selection boxes; there is rarely a reason to.
+		"maxXDivisions": 32,
+		"maxZDivisions": 32,
+
+		// Kills the random resting angle for items on THIS block. For surfaces
+		// holding something the player lined up by hand - a chiselled block,
+		// a picture. Has to live on the block: a microblock supplies its own
+		// display props, so there is no item JSON to patch.
+		"noPlacementJitter": false,
+
+		// ------------------------------------------------------------------
+		//  SWAPPING
+		// ------------------------------------------------------------------
+
+		// Sprint + wrench on a frame box converts this block into another.
+		// {state} and any other variant code are substituted from this block,
+		// so one line covers open and closed.
+		//
+		// BUILD CYCLES ACROSS BLOCKS, each pointing at the next - an ARRAY is
+		// a fallback list, not a cycle. Rings longer than two work fine:
+		//     left -> leftedge -> right -> rightedge -> left
+		//
+		// Refuses while anything is stored, so nothing is ever lost.
+		"wrenchSwapTo": "mymod:myfancywindow-edge-{state}",
+
+		// Override what this block drops. Same {variant} substitution.
+		// Without it, a block that appears in no creative tab drops its
+		// wrenchSwapTo target instead - which is how edge versions stay
+		// unobtainable without a wrench.
+		"dropsAs": "mymod:myfancywindow-{state}",
+
+		// ------------------------------------------------------------------
+		//  MULTI-BLOCK STACKS
+		// ------------------------------------------------------------------
+
+		// Authored bottom-up: the bottom block names the one above it, and so
+		// on. Only the bottom is obtainable - the rest are placed with it,
+		// break with it and swap with it, and the whole stack drops one item.
+		// Placement is refused outright if the space above is blocked.
+		"placeWith": "mymod:myfancywindow-top-{state}",
+
+		// On the UPPER segments only. Marks them as belonging to the block
+		// below, which is what suppresses their drops.
+		// "pairedWith": "below",
+
+		// Panes toggle together across the stack, in the same client frame.
+		// Needs to be on every segment that should move as one.
+		"linkedOpen": true,
+
+		// ------------------------------------------------------------------
+		//  MISC
+		// ------------------------------------------------------------------
+
+		// Silence the rain-on-glass sound for this style. For shutters, solid
+		// panels, anything without glass in it.
+		"disableRainSound": false
+	},
+
+	// Standard block properties below here - nothing lib-specific.
+	"creativeinventory": { "general": [ "*-closed" ] },
+	"blockmaterial": "Wood",
+	"resistance": 3.5,
+	"sounds": { "place": "block/planks", "break": "block/planks" }
+}

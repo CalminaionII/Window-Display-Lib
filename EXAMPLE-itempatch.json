@@ -1,0 +1,164 @@
+// ============================================================================
+//  WINDOW DISPLAY LIB - annotated example item patch
+//
+//  This is how you tell the mod how an ITEM should sit on a window sill.
+//
+//  MOST ITEMS NEED NOTHING. The lookup order is:
+//
+//      displayable.windowdisplay  ->  displayable.shelf  ->  shelvable
+//                                 ->  windowdisplayable
+//
+//  so anything already authored for a vanilla shelf is inherited as it stands.
+//  There are only two reasons to write a patch:
+//
+//    1. the item has NO display data at all, so the game refuses to place it
+//    2. the item places fine but is the wrong size for a windowsill
+//
+//  Check before patching. `shelvable: true` on its own synthesises a 6x4x6 box
+//  and NO transform, so it renders at scale 1.0 and looks far too big - but
+//  `shelvable` WITH an onshelfTransform or onDisplayTransform is usually
+//  already correct.
+// ============================================================================
+[
+	{
+		// ALWAYS "addmerge", never "add".
+		//
+		// `add` is a straight assignment - it REPLACES whatever is at that path,
+		// including vanilla's own displayable.shelf entry, which vanilla shelves
+		// read. That silently breaks the base game. `addmerge` creates the key
+		// when absent and merges alongside when present, so one form is correct
+		// whatever the target looks like and it survives the mod author adding
+		// their own entry later.
+		"op": "addmerge",
+
+		// Patch the whole `displayable` object, not `displayable/windowdisplay`.
+		// Merging is recursive, so aim as shallow as you like - this works on a
+		// target with no attributes at all, one with attributes but no
+		// displayable, and one that already has displayable.shelf.
+		"path": "/attributes/displayable",
+
+		"file": "game:itemtypes/resource/mything",
+
+		// REQUIRED when patching another mod's assets. Skipped silently if that
+		// mod is absent - no errors, no red lines in anyone's log. Leave it off
+		// and the patch fails loudly for everyone who does not have the mod.
+		// Not needed for "game:" files.
+		"dependsOn": [ { "modid": "someothermod" } ],
+
+		"value": {
+			"windowdisplay": {
+
+				// THE FOOTPRINT, IN VOXELS. Drives bounds, collision, the
+				// selection box you click, and the stack pitch. It is NOT
+				// derived from the model and nothing keeps the two in step -
+				// if you scale the item down, scale this down too.
+				//
+				// WIDTH AND LENGTH. The item is centred on the spot you click
+				// and must fit entirely inside the surface, and positions are
+				// whole voxels. A main sill is 16 wide x 7 deep, so a 7-deep
+				// item would need to sit at 3.5 and CANNOT BE PLACED AT ALL.
+				// Keep length at 6 or under. Going over is a legitimate way to
+				// make something edge-window only, if that is what you want.
+				//
+				// HEIGHT is the stack pitch, so it decides clipping. Declare it
+				// shorter than the item renders and copies sink into each other;
+				// declare it taller and they float apart. Height over 7 is also
+				// refused outright on the shallower surfaces.
+				"size": { "width": 3, "height": 4, "length": 3 },
+
+				// Allows items of this type to be piled on each other.
+				// Leave it out and it defaults to no stacking - which catches
+				// people out when overriding an item vanilla had already set,
+				// because the override replaces the whole entry. If you want
+				// stacking kept, you have to say so yourself.
+				"behavior": "Stacking",
+
+				// How crooked the item is allowed to sit - the FULL spread, so
+				// it lands within half of it either way. The default of 30
+				// means up to 15 degrees off square in either direction.
+				//
+				//   0  - always perfectly straight, for something meant to look
+				//        deliberately placed
+				//   7  - a small nudge, for an item with a front, or whose
+				//        particleOffset is measured against one side
+				//
+				// This sits UNDERNEATH the player's config switch: someone who
+				// has turned jitter off gets square items regardless.
+				"randYRotAngle": 30,
+
+				// OPTIONAL - switches on flame or smoke particles for this item
+				// and sets where they come from. No key, no particles.
+				//
+				// In voxels, authored unrotated, with Y measured from the TOP of
+				// the box. It is rotated with the item automatically, so one
+				// value holds through a wrench turn and on a rotated window.
+				//
+				// TUNE THIS BY EYE IN GAME. It cannot be derived - nothing in
+				// the game's files says where a wick is, and a long-lived
+				// particle's visible column sits well away from its spawn point.
+				"particleOffset": { "x": 0, "y": 0, "z": -3.5 },
+
+				// OPTIONAL - render a different shape than the item's own.
+				// This is how clothing shows folded rather than worn.
+				// "shape": { "base": "game:item/clothes/upperbody-folded" },
+
+				// VISUALS ONLY. Does not affect the footprint, collision or
+				// what the item collides with - `size` does all of that.
+				"transform": {
+					"translation": { "x": 0, "y": 0, "z": 0 },
+					"rotation":    { "x": 0, "y": 0, "z": 0 },
+					"origin":      { "x": 0.5, "y": 0, "z": 0.5 },
+					"scale": 1
+				}
+			}
+		}
+	},
+
+	// ------------------------------------------------------------------------
+	//  PER-VARIANT VALUES
+	//
+	//  Any key here also takes a "ByType" form, matched against the resolved
+	//  block or item code. Useful when one file covers several sizes.
+	//
+	//  MATCH THE WILDCARD TO HOW MANY CODE SEGMENTS ACTUALLY FOLLOW. If the
+	//  code ends at "-gold" then "*-gold-*" needs a further segment that does
+	//  not exist and silently matches NOTHING, dropping everything to the "*"
+	//  catch-all. Use "*-gold". Items with more segments after the one you are
+	//  targeting do want the trailing star.
+	// ------------------------------------------------------------------------
+	{
+		"op": "addmerge",
+		"path": "/attributes/displayable",
+		"file": "game:blocktypes/metal/lantern",
+		"value": {
+			"windowdisplay": {
+				"sizeByType": {
+					"lantern-large-*": { "width": 5.6, "height": 7.7, "length": 5.6 },
+					"lantern-small-*": { "width": 4.2, "height": 7.7, "length": 4.2 },
+					"*":               { "width": 4.2, "height": 7.7, "length": 4.2 }
+				},
+				"transform": {
+					"translation": { "x": 0, "y": 0, "z": 0 },
+					"rotation":    { "x": 0, "y": 0, "z": 0 },
+					"origin":      { "x": 0.5, "y": 0, "z": 0.5 },
+					"scale": 0.7
+				}
+			}
+		}
+	}
+]
+
+// ============================================================================
+//  GETTING THE NUMBERS
+//
+//  Easiest way: place the item, open the in-game transform editor on the
+//  "Window" tab, nudge it until it looks right, and copy the values out. The
+//  editor reads and writes the same entry this patch uses.
+//
+//  For `size`, measure the shape rather than guessing - and remember a shape's
+//  bounding box includes handles, hooks and hanging loops. Measure the BODY for
+//  width and length, and to the top of the body for height.
+//
+//  Sizing a family that shares one entry (all the antlers, all the amulets):
+//  size it off the LARGEST member so nothing overhangs.
+// ============================================================================
